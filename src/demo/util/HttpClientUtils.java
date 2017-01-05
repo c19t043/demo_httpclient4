@@ -1,91 +1,72 @@
 package demo.util;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.http.Consts;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.BufferedHttpEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class HttpClientUtils {
-	
-	private final static String CHARSET_UTF_8 = "UTF-8";
-	
+	private static Logger log = LoggerFactory.getLogger(HttpClientUtils.class);
     public static String doPost(String url,Map<String,String> params){
-    	
     	if(params.isEmpty()) return "请求参数不能为空";
-    	
     	List<NameValuePair> paramList = parseMap2NameValuePair(params);
-    	
-    	UrlEncodedFormEntity req_Entity = null;
-		try {
-			req_Entity = new UrlEncodedFormEntity(paramList,CHARSET_UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-    	
+    	UrlEncodedFormEntity req_Entity = new UrlEncodedFormEntity(paramList,Consts.UTF_8);
     	return doPost(url, req_Entity);
     }
-    
     public static String doPut(String url,Map<String,String> params){
-    	
     	if(params.isEmpty()) return "请求参数不能为空";
-    	
     	List<NameValuePair> paramList = parseMap2NameValuePair(params);
-    	
-    	UrlEncodedFormEntity req_Entity = null;
-		try {
-			req_Entity = new UrlEncodedFormEntity(paramList,CHARSET_UTF_8);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-		}
-    	
+    	UrlEncodedFormEntity req_Entity = new UrlEncodedFormEntity(paramList,Consts.UTF_8);
     	return doPut(url, req_Entity);
     }
-    
-    public static List<NameValuePair> parseMap2NameValuePair(Map<String,String> params){
+    private static List<NameValuePair> parseMap2NameValuePair(Map<String,String> params){
     	List<NameValuePair> paramList = new ArrayList<NameValuePair>();
     	for(Entry<String, String> entry : params.entrySet()){
     		paramList.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
     	}
     	return paramList;
     }
-    
     public static String doPost(String url,String content){
-    	
-    	StringEntity req_Entity = new StringEntity(content,CHARSET_UTF_8);
-
+    	StringEntity req_Entity = new StringEntity(content,Consts.UTF_8);
     	return doPost(url, req_Entity);
     }
-    
+    public static String doPostJson(String url,String jsonContent){
+    	StringEntity req_Entity = new StringEntity(jsonContent,Consts.UTF_8);
+    	req_Entity.setContentType(ContentType.create("text/json", Consts.UTF_8).toString());
+    	return doPost(url, req_Entity);
+    }
     public static String doDelete(String url){
     	CloseableHttpClient httpClient = getHttpClient();
     	HttpDelete request = getHttpDelete(url);
-    	
     	return ClientExecute(httpClient, request);
     }
-    
     private static String doPut(String url,HttpEntity req_Entity){
     	CloseableHttpClient httpClient = getHttpClient();
     	HttpPut request = getHttpPut(url);
@@ -93,32 +74,12 @@ public class HttpClientUtils {
     	
     	return ClientExecute(httpClient, request);
     }
-    
-    private static String ClientExecute(CloseableHttpClient httpClient,HttpUriRequest request){
-    	CloseableHttpResponse response = null;
-    	String result = "";
-    	try {
-    		response = httpClient.execute(request);
-    		result = getResponseContent(response);
-    		
-		} catch (Exception e) {
-			System.out.println(e);
-		}finally{
-			releaseConnection(httpClient, request, response);
-		}
-    	return result;
-    }
-    
     private static String doPost(String url,HttpEntity req_Entity){
-    	
     	CloseableHttpClient httpClient = getHttpClient();
     	HttpPost request = getHttpPost(url);
     	request.setEntity(req_Entity);
-    	
     	return ClientExecute(httpClient, request);
     }
-    
-    
     private static CloseableHttpClient getHttpClient(){
 		PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
 		connManager.setMaxTotal(100);
@@ -131,28 +92,24 @@ public class HttpClientUtils {
 				.build();
 		return httpClient;
 	}
-	
     private static HttpPut getHttpPut(String url){
     	HttpPut httpPut = new HttpPut(url);
 		RequestConfig config = getConfig();
 		httpPut.setConfig(config);
 		return httpPut;
 	}
-    
     private static HttpDelete getHttpDelete(String url){
     	HttpDelete httpDelete = new HttpDelete(url);
 		RequestConfig config = getConfig();
 		httpDelete.setConfig(config);
 		return httpDelete;
 	}
-    
 	private static HttpPost getHttpPost(String url){
 		HttpPost httppost = new HttpPost(url);
 		RequestConfig config = getConfig();
 		httppost.setConfig(config);
 		return httppost;
 	}
-	
 	private static RequestConfig getConfig(){
 		RequestConfig config = RequestConfig.custom().setConnectionRequestTimeout(5000) // 设置从connectManager获取Connection,超时时间，单位毫秒
 				.setConnectTimeout(5000) // 设置连接超时时间，单位毫秒
@@ -160,59 +117,65 @@ public class HttpClientUtils {
 				.build();
 		return config;
 	}
-	
-    public static void releaseConnection(CloseableHttpClient httpClient,HttpUriRequest request,CloseableHttpResponse response){
+    private static String ClientExecute(CloseableHttpClient httpClient,HttpUriRequest request){
+    	String result = "";
+    	try {
+    		StringResponseHandler responseHandler = new StringResponseHandler();
+    		log.info("Executing request " + request.getRequestLine());
+    		result = httpClient.execute(request,responseHandler);
+		} catch (Exception e) {
+			log.error("", e);
+		}finally{
+			//释放资源
+			releaseConnection(httpClient, request);
+		}
+    	return result;
+    }
+    public static void releaseConnection(CloseableHttpClient httpClient,HttpUriRequest request){
 		if(httpClient!=null){
 			try {
 				httpClient.close();
-				httpClient.getConnectionManager().shutdown();
 			} catch (IOException e) {
-				System.out.println(e);
-			}
-		}
-		if(request!=null){
-			((HttpRequestBase) request).releaseConnection();
-		}
-		if(response!=null){
-			try {
-				response.close();
-			} catch (IOException e) {
-				System.out.println(e);
+				log.error("", e);
 			}
 		}
 	}
-    private static String getResponseContent(CloseableHttpResponse response) {
-		StringBuilder sb = new StringBuilder();
-		BufferedReader br = null;
-		BufferedInputStream bufferIn = null ;
-		try {
+}
+/**
+ * 字符串响应处理类
+ */
+class StringResponseHandler implements ResponseHandler<String>{
+	@Override
+	public String handleResponse(HttpResponse response)
+			throws ClientProtocolException, IOException {
+		int status = response.getStatusLine().getStatusCode();
+		if (status >= 200 && status < 300) {
+			StringBuilder sb = new StringBuilder();
+			BufferedInputStream bufferIn = null ;
 			HttpEntity res_Entity = response.getEntity();
-			res_Entity = new BufferedHttpEntity(res_Entity);
 			if(res_Entity!=null){
+				res_Entity = new BufferedHttpEntity(response.getEntity());
 				InputStream in = res_Entity.getContent();
 				bufferIn = new BufferedInputStream(in);
 				byte[] b = new byte[1024];
 				int len;
 				while((len=bufferIn.read(b))!=-1){
-					sb.append(new String(b,0,len));
+					sb.append(new String(b,0,len,Consts.UTF_8));
 				}
-				//br = new BufferedReader(new InputStreamReader(in));
-	
-				/*if ((str = br.readLine()) != null) {
-					sb.append(str);
-				}*/
+				releaseResource(in, res_Entity);
 			}
-		} catch (IOException e) {
-			System.out.println(e);
-		}finally{
-			if(br!=null){
-				try {
-					br.close();
-				} catch (IOException e) {
-					System.out.println(e);
-				}
-			}
+			return sb.toString();
+		} else {
+            throw new ClientProtocolException("Unexpected response status: " + status);
+        }
+	}
+	//释放资源
+	private void releaseResource(InputStream in,HttpEntity res_Entity) throws IOException{
+		if(in!=null){
+			in.close();
 		}
-		return sb.toString();
+		if(res_Entity!=null){
+			EntityUtils.consume(res_Entity);
+		}
 	}
 }
