@@ -13,6 +13,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -22,6 +23,7 @@ import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.entity.BufferedHttpEntity;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -31,9 +33,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class HttpClientUtils {
+public class HttpClientUtil {
 	//===========================log
-	private static Logger log = LoggerFactory.getLogger(HttpClientUtils.class);
+	private static Logger log = LoggerFactory.getLogger(HttpClientUtil.class);
 	//===========================log
     //=======================GET
     public static String doPut(String url,Map<String,String> params){
@@ -92,13 +94,27 @@ public class HttpClientUtils {
     private static CloseableHttpClient getHttpClient(){
     	HttpClientConnectionManager connManager = getHttpClientConnectionManager();
 		RequestConfig globalConfig = getConfig();
+		CookieStore cookieStore = getCookieStore();
 		CloseableHttpClient httpClient = HttpClients.custom()
+				.setDefaultCookieStore(cookieStore)
 				.setDefaultRequestConfig(globalConfig)// 设置全局请求配置
 				//.setConnectionManager(connManager)// 设置连接管理器
 				.build();
 		return httpClient;
 	}
     //===================HttpClient
+    //================================CookieStore
+    private static CookieStore cookieStore;
+    public static void setCookieStore(CookieStore inCookieStore){
+    	cookieStore = inCookieStore;
+    }
+    private static CookieStore getCookieStore(){
+    	if(cookieStore==null){
+    		cookieStore = new BasicCookieStore();
+    	}
+    	return cookieStore;
+    } 
+   //================================CookieStore
     //=========================HttpClientConnectionManager
     private static HttpClientConnectionManager getHttpClientConnectionManager(){
     	PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
@@ -109,7 +125,7 @@ public class HttpClientUtils {
     //=========================HttpClientConnectionManager
     //========================Config
 	private static RequestConfig getConfig(){
-		int timeOut = 60000;//1分钟
+		int timeOut = 120000;//2分钟
 		RequestConfig config = RequestConfig.custom()
 				.setConnectionRequestTimeout(timeOut) // 设置从connectManager获取Connection,超时时间，单位毫秒
 				.setConnectTimeout(timeOut) // 设置连接超时时间，单位毫秒

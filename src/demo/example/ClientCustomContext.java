@@ -50,7 +50,6 @@ public class ClientCustomContext {
         try {
             // Create a local instance of cookie store
             CookieStore cookieStore = new BasicCookieStore();
-
             // Create local HTTP context
             HttpClientContext localContext = HttpClientContext.create();
             // Bind custom cookie store to the local context
