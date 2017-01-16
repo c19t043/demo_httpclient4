@@ -8,10 +8,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.http.Consts;
+import org.apache.http.Header;
+import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.ResponseHandler;
@@ -27,6 +31,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
@@ -60,6 +65,25 @@ public class HttpClientUtil {
     	List<NameValuePair> paramList = parseMap2NameValuePair(params);
     	UrlEncodedFormEntity req_Entity = new UrlEncodedFormEntity(paramList,Consts.UTF_8);
     	return doPost(url, req_Entity);
+    }
+    public static String doPostXML(String url,String content){
+    	StringEntity req_Entity = new StringEntity(content,Consts.UTF_8);
+    	req_Entity.setContentType(ContentType.TEXT_XML.toString());
+    	return doPost(url, req_Entity);
+    }
+    public static String doPostSOAP(String url,String content){
+    	StringEntity req_Entity = new StringEntity(content,Consts.UTF_8);
+    	CloseableHttpClient httpClient = getHttpClient();
+    	HttpUriRequest request = RequestBuilder.post()
+    			.setUri(url)
+    			.setConfig(getConfig())
+    			.setEntity(req_Entity).build();
+    	List<org.apache.http.Header>  headers = new ArrayList<org.apache.http.Header>();
+    	headers.add(new BasicHeader("Content-Type", "application/soap+xml; charset=utf-8"));
+    	//headers.add(new BasicHeader("SOAPAction", "http://tempuri.org/InteractionOperating"));
+    	org.apache.http.Header[] header = new Header[1];
+    	request.setHeaders(headers.toArray(header));
+    	return ClientExecute(httpClient, request);
     }
     public static String doPostText(String url,String content){
     	StringEntity req_Entity = new StringEntity(content,Consts.UTF_8);
